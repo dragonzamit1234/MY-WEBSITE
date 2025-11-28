@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <style>
+        body {font-family: Arial; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh;}
+        .box {background:white; padding:20px; width:300px; border-radius:10px; box-shadow:0px 0px 10px gray;}
+        input,button {width:100%; padding:10px; margin-top:10px;}
+        button {background:green; color:white; border:none;}
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>Create Account</h2>
+    <input id="user" type="text" placeholder="Create Username">
+    <input id="pass" type="password" placeholder="Create Password">
+
+    <button onclick="register()">Register</button>
+    <p id="msg"></p>
+</div>
+
+<script>
+function register() {
+    let u = document.getElementById("user").value;
+    let p = document.getElementById("pass").value;
+
+    if (u === "" || p === "") {
+        document.getElementById("msg").innerHTML = "Please fill all fields!";
+        return;
+    }
+
+    // Save account to localStorage
+    let accounts = JSON.parse(localStorage.getItem("accounts") || "{}");
+    
+    if (accounts[u]) {
+        document.getElementById("msg").innerHTML = "Username already exists!";
+        return;
+    }
+
+    accounts[u] = p;
+    localStorage.setItem("accounts", JSON.stringify(accounts));
+
+    document.getElementById("msg").innerHTML = "Account created! Go to login.";
+}
+</script>
+
+</body>
+</html>
