@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <style>
+        body {font-family:Arial;background:#e6e6e6;margin:0;}
+        .nav {background:#333;padding:15px;color:white;font-size:20px;}
+        .container {background:white;margin:20px;padding:20px;border-radius:10px;}
+        .file-box {background:#f3f3f3;padding:10px;margin-top:10px;border-radius:5px;}
+        button {padding:6px 12px;border:none;color:white;border-radius:5px;margin-left:10px;}
+        .download {background:green;}
+        .preview {background:blue;}
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    Dashboard — Logged in as <span id="userName"></span>
+</div>
+
+<div class="container">
+    <h2>Upload File</h2>
+    <input type="file" id="fileInput">
+    <button onclick="upload()">Upload</button>
+
+    <h3>Posted Files</h3>
+    <div id="fileList"></div>
+</div>
+
+<script>
+let user = localStorage.getItem("currentUser");
+document.getElementById("userName").innerHTML = user;
+
+function upload() {
+    let file = document.getElementById("fileInput").files[0];
+    if (!file) return;
+
+    let reader = new FileReader();
+    reader.onload = function (e) {
+        let dataURL = e.target.result;
+
+        let saved = JSON.parse(localStorage.getItem("files") || "[]");
+
+        saved.push({
+            name: file.name,
+            type: file.type,
+            data: dataURL
+        });
+
+        localStorage.setItem("files", JSON.stringify(saved));
+        loadFiles();
+    };
+    reader.readAsDataURL(file);
+}
+
+function loadFiles() {
+    let list = JSON.parse(localStorage.getItem("files") || "[]");
+    let box = document.getElementById("fileList");
+    box.innerHTML = "";
+
+    list.forEach((file, i) => {
+        box.innerHTML += `
+            <div class="file-box">
+                📄 ${file.name}
+                <button class="preview" onclick="previewFile(${i})">Preview</button>
+                <button class="download" onclick="downloadFile(${i})">Download</button>
+            </div>`;
+    });
+}
+
+function previewFile(i) {
+    let file = JSON.parse(localStorage.getItem("files"))[i];
+    window.open(file.data, "_blank");
+}
+
+function downloadFile(i) {
+    let file = JSON.parse(localStorage.getItem("files"))[i];
+
+    let a = document.createElement("a");
+    a.href = file.data;
+    a.download = file.name;
+    a.click();
+}
+
+loadFiles();
+</script>
+
+</body>
+</html>
