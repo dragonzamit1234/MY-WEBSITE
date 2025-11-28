@@ -1,90 +1,160 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Dashboard</title>
-    <style>
-        body {font-family:Arial;background:#e6e6e6;margin:0;}
-        .nav {background:#333;padding:15px;color:white;font-size:20px;}
-        .container {background:white;margin:20px;padding:20px;border-radius:10px;}
-        .file-box {background:#f3f3f3;padding:10px;margin-top:10px;border-radius:5px;}
-        button {padding:6px 12px;border:none;color:white;border-radius:5px;margin-left:10px;}
-        .download {background:green;}
-        .preview {background:blue;}
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard — My Site</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#f6f7fb;margin:0}
+    .top{display:flex;justify-content:space-between;align-items:center;padding:16px;background:#111827;color:#fff}
+    .container{max-width:900px;margin:20px auto;background:#fff;padding:18px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+    .controls{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .btn{padding:10px 14px;border-radius:8px;border:none;cursor:pointer;font-weight:600}
+    .primary{background:#2563eb;color:#fff}
+    .muted{background:#e5e7eb;color:#111}
+    .file-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+    .file-card{border:1px solid #eee;padding:12px;border-radius:8px;display:flex;flex-direction:column;gap:8px;min-height:110px}
+    .file-actions{display:flex;gap:8px;margin-top:auto}
+    a.small{font-size:13px;color:#2563eb;text-decoration:none}
+    .user{font-weight:600}
+  </style>
 </head>
 <body>
 
-<div class="nav">
-    Dashboard — Logged in as <span id="userName"></span>
-</div>
+  <div class="top">
+    <div style="font-size:18px">My Dashboard</div>
+    <div>
+      <span id="userSpan" class="user"></span>
+      <button class="btn muted" onclick="logout()">Logout</button>
+    </div>
+  </div>
 
-<div class="container">
-    <h2>Upload File</h2>
-    <input type="file" id="fileInput">
-    <button onclick="upload()">Upload</button>
+  <div class="container">
+    <div class="controls">
+      <!-- Open the GitHub upload UI for the uploads folder (manual upload) -->
+      <button class="btn primary" id="uploadBtn">Upload file to repo (opens GitHub)</button>
+      <!-- Link to repo uploads page -->
+      <a id="repoLink" class="small" target="_blank" href="#">Open repository on GitHub</a>
+      <div style="flex:1"></div>
+      <input id="search" placeholder="Filter by name..." style="padding:8px;border-radius:6px;border:1px solid #ddd" oninput="renderFiles()" />
+    </div>
 
-    <h3>Posted Files</h3>
-    <div id="fileList"></div>
-</div>
+    <h3>Files in repo /uploads</h3>
+    <div id="fileList" class="file-grid"></div>
+    <p style="margin-top:12px;color:#666;font-size:13px">
+      Tips: To add or delete files, use the GitHub web UI (the Upload button opens the GitHub upload page). Deleting must be done on GitHub (click the file → trash icon → commit).
+    </p>
+  </div>
 
 <script>
-let user = localStorage.getItem("currentUser");
-document.getElementById("userName").innerHTML = user;
+/* CONFIG: set your GitHub owner & repo name */
+const OWNER = 'OWNER'; // <-- replace with your GitHub username
+const REPO  = 'REPO';  // <-- replace with your repo name
+const BRANCH = 'main';
+const UPLOAD_PATH = 'uploads'; // folder inside the repo
 
-function upload() {
-    let file = document.getElementById("fileInput").files[0];
-    if (!file) return;
+// page initialisation
+document.getElementById('repoLink').href = `https://github.com/${OWNER}/${REPO}`;
+document.getElementById('uploadBtn').addEventListener('click', ()=>{
+  // opens GitHub's upload UI for that folder (manual)
+  const url = `https://github.com/${OWNER}/${REPO}/upload/${BRANCH}/${UPLOAD_PATH}`;
+  window.open(url, '_blank');
+});
 
-    let reader = new FileReader();
-    reader.onload = function (e) {
-        let dataURL = e.target.result;
-
-        let saved = JSON.parse(localStorage.getItem("files") || "[]");
-
-        saved.push({
-            name: file.name,
-            type: file.type,
-            data: dataURL
-        });
-
-        localStorage.setItem("files", JSON.stringify(saved));
-        loadFiles();
-    };
-    reader.readAsDataURL(file);
+function logout(){
+  localStorage.removeItem('currentUser');
+  window.location.href = 'index.html';
 }
 
-function loadFiles() {
-    let list = JSON.parse(localStorage.getItem("files") || "[]");
-    let box = document.getElementById("fileList");
-    box.innerHTML = "";
-
-    list.forEach((file, i) => {
-        box.innerHTML += `
-            <div class="file-box">
-                📄 ${file.name}
-                <button class="preview" onclick="previewFile(${i})">Preview</button>
-                <button class="download" onclick="downloadFile(${i})">Download</button>
-            </div>`;
-    });
+const currentUser = localStorage.getItem('currentUser');
+if(!currentUser){ window.location.href = 'index.html'; } else {
+  document.getElementById('userSpan').textContent = currentUser;
 }
 
-function previewFile(i) {
-    let file = JSON.parse(localStorage.getItem("files"))[i];
-    window.open(file.data, "_blank");
+/* Fetch list of files from GitHub repo folder (public repo allowed)
+   API endpoint: GET /repos/:owner/:repo/contents/:path
+*/
+let filesCache = [];
+
+async function fetchFiles(){
+  const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${UPLOAD_PATH}?ref=${BRANCH}`;
+  try {
+    const res = await fetch(url);
+    if(!res.ok){
+      console.error('GitHub API error', res.status, await res.text());
+      document.getElementById('fileList').innerHTML = '<div style="color:#b91c1c">Error reading repo contents. Make sure the repo is public and the folder exists.</div>';
+      return;
+    }
+    const data = await res.json(); // array of objects (file entries)
+    // filter to files only (type === 'file')
+    filesCache = (Array.isArray(data) ? data.filter(f => f.type === 'file') : []);
+    renderFiles();
+  } catch(err){
+    console.error(err);
+    document.getElementById('fileList').innerHTML = '<div style="color:#b91c1c">Network error while fetching files.</div>';
+  }
 }
 
-function downloadFile(i) {
-    let file = JSON.parse(localStorage.getItem("files"))[i];
-
-    let a = document.createElement("a");
-    a.href = file.data;
-    a.download = file.name;
-    a.click();
+function rawUrl(path){
+  // raw.githubusercontent URL for direct file content/download
+  return `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${UPLOAD_PATH}/${encodeURIComponent(path)}`;
 }
 
-loadFiles();
+function renderFiles(){
+  const listEl = document.getElementById('fileList');
+  const query = (document.getElementById('search').value || '').toLowerCase();
+  listEl.innerHTML = '';
+  const filtered = filesCache.filter(f => f.name.toLowerCase().includes(query));
+  if(filtered.length === 0){
+    listEl.innerHTML = '<div style="color:#666">No files found.</div>';
+    return;
+  }
+
+  filtered.forEach(file => {
+    // file.download_url is available in API response but raw URL constructed above is fine
+    const name = file.name;
+    const ext = name.split('.').pop().toLowerCase();
+    const raw = file.download_url || rawUrl(name);
+
+    // preview: images open in new tab; pdf open raw; other types download
+    const previewBtn = `<button class="btn muted" onclick="previewFile('${encodeURIComponent(name)}')">Preview</button>`;
+    const downloadBtn = `<a class="btn primary" href="${raw}" download="${name}" style="text-decoration:none;color:white">Download</a>`;
+    // direct link to file page on GitHub so owner can delete via web UI
+    const deleteLink = `https://github.com/${OWNER}/${REPO}/blob/${BRANCH}/${UPLOAD_PATH}/${encodeURIComponent(name)}`;
+    const deleteBtn = `<a class="small" target="_blank" href="${deleteLink}">Delete on GitHub</a>`;
+
+    const card = document.createElement('div');
+    card.className = 'file-card';
+    card.innerHTML = `
+      <div style="font-weight:600">${name}</div>
+      <div style="color:#555;font-size:13px">${file.size ? (file.size/1024).toFixed(1) + ' KB' : ''}</div>
+      <div class="file-actions">${previewBtn} ${downloadBtn}</div>
+      <div style="margin-top:8px">${deleteBtn}</div>
+    `;
+    listEl.appendChild(card);
+  });
+}
+
+/* Preview function opens raw content in new tab for browser-displayable files */
+function previewFile(encodedName){
+  const name = decodeURIComponent(encodedName);
+  const raw = rawUrl(name);
+  // for images and PDFs, open raw link; for others, open GitHub file page
+  const ext = name.split('.').pop().toLowerCase();
+  const inlineExt = ['png','jpg','jpeg','gif','webp','svg','pdf','txt','md','html'];
+  if(inlineExt.includes(ext)){
+    window.open(raw, '_blank');
+  } else {
+    // if not previewable raw, open the GitHub file page
+    window.open(`https://github.com/${OWNER}/${REPO}/blob/${BRANCH}/${UPLOAD_PATH}/${encodeURIComponent(name)}`, '_blank');
+  }
+}
+
+/* initial load */
+fetchFiles();
+
+/* refresh every 45 seconds (optional) */
+setInterval(fetchFiles, 45000);
 </script>
-
 </body>
 </html>
