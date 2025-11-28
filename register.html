@@ -1,50 +1,53 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Register</title>
-    <style>
-        body {font-family: Arial; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh;}
-        .box {background:white; padding:20px; width:300px; border-radius:10px; box-shadow:0px 0px 10px gray;}
-        input,button {width:100%; padding:10px; margin-top:10px;}
-        button {background:green; color:white; border:none;}
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Register — My Site</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;margin:0;display:flex;align-items:center;justify-content:center;height:100vh}
+    .card{width:360px;background:#fff;padding:24px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.08)}
+    input{width:100%;padding:10px;margin:10px 0;border:1px solid #ddd;border-radius:6px;box-sizing:border-box}
+    .row{position:relative}
+    .eye{position:absolute;right:12px;top:42px;cursor:pointer}
+    .btn{width:100%;padding:12px;background:#059669;border:none;color:#fff;border-radius:8px;cursor:pointer;font-weight:600}
+    .link{display:block;text-align:center;margin-top:12px;color:#2563eb;text-decoration:none}
+    .msg{height:20px;text-align:center}
+  </style>
 </head>
 <body>
-
-<div class="box">
-    <h2>Create Account</h2>
-    <input id="user" type="text" placeholder="Create Username">
-    <input id="pass" type="password" placeholder="Create Password">
-
-    <button onclick="register()">Register</button>
-    <p id="msg"></p>
-</div>
+  <div class="card">
+    <h2 style="margin:0 0 8px 0;text-align:center">Create Account</h2>
+    <input id="email" type="email" placeholder="Email" />
+    <div class="row">
+      <input id="password" type="password" placeholder="Password" />
+      <span class="eye" id="eye2">👁️</span>
+    </div>
+    <div class="msg" id="msg"></div>
+    <button class="btn" onclick="register()">Register</button>
+    <a class="link" href="index.html">Back to login</a>
+  </div>
 
 <script>
-function register() {
-    let u = document.getElementById("user").value;
-    let p = document.getElementById("pass").value;
+document.getElementById('eye2').addEventListener('click', ()=>{
+  const p = document.getElementById('password');
+  p.type = p.type === 'password' ? 'text' : 'password';
+});
 
-    if (u === "" || p === "") {
-        document.getElementById("msg").innerHTML = "Please fill all fields!";
-        return;
-    }
+function register(){
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const pass = document.getElementById('password').value;
+  const msg = document.getElementById('msg');
+  if(!email || !pass){ msg.textContent = 'Please fill all fields'; return; }
 
-    // Save account to localStorage
-    let accounts = JSON.parse(localStorage.getItem("accounts") || "{}");
-    
-    if (accounts[u]) {
-        document.getElementById("msg").innerHTML = "Username already exists!";
-        return;
-    }
+  let accounts = JSON.parse(localStorage.getItem('accounts') || '{}');
+  if(accounts[email]){ msg.textContent = 'Account already exists'; return; }
 
-    accounts[u] = p;
-    localStorage.setItem("accounts", JSON.stringify(accounts));
-
-    document.getElementById("msg").innerHTML = "Account created! Go to login.";
+  accounts[email] = pass;
+  localStorage.setItem('accounts', JSON.stringify(accounts));
+  msg.style.color = 'green';
+  msg.textContent = 'Account created — go to login';
 }
 </script>
-
 </body>
 </html>
