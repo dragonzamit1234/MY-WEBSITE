@@ -1,47 +1,57 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Login</title>
-    <style>
-        body {font-family:Arial;background:#f2f2f2;height:100vh;display:flex;justify-content:center;align-items:center;}
-        .box {width:300px;background:white;padding:20px;border-radius:10px;box-shadow:0 0 10px gray;}
-        input,button {width:100%;padding:10px;margin-top:10px;}
-        button {background:blue;color:white;border:none;}
-        .link {text-align:center;margin-top:10px;}
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login — My Site</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;margin:0;display:flex;align-items:center;justify-content:center;height:100vh}
+    .card{width:360px;background:#fff;padding:24px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.08)}
+    input{width:100%;padding:10px;margin:10px 0;border:1px solid #ddd;border-radius:6px;box-sizing:border-box}
+    .row{position:relative}
+    .eye{position:absolute;right:12px;top:42px;cursor:pointer;user-select:none}
+    .btn{width:100%;padding:12px;background:#2563eb;border:none;color:#fff;border-radius:8px;cursor:pointer;font-weight:600}
+    .link{display:block;text-align:center;margin-top:12px;color:#2563eb;text-decoration:none}
+    .err{color:#b91c1c;text-align:center;height:20px}
+  </style>
 </head>
 <body>
-
-<div class="box">
-    <h2>Login</h2>
-    <input id="user" type="text" placeholder="Username">
-    <input id="pass" type="password" placeholder="Password">
-
-    <button onclick="login()">Login</button>
-
-    <div class="link">
-        <a href="register.html">Create an account</a>
+  <div class="card">
+    <h2 style="margin:0 0 8px 0;text-align:center">Login</h2>
+    <input id="email" type="email" placeholder="Email" />
+    <div class="row">
+      <input id="password" type="password" placeholder="Password" />
+      <span class="eye" id="toggleEye">👁️</span>
     </div>
-
-    <p id="err" style="color:red;"></p>
-</div>
+    <div class="err" id="err"></div>
+    <button class="btn" onclick="login()">Login</button>
+    <a class="link" href="register.html">Create an account</a>
+  </div>
 
 <script>
-function login() {
-    let u = document.getElementById("user").value;
-    let p = document.getElementById("pass").value;
+/* simple client-side accounts using localStorage */
+/* NOTE: client-only auth is insecure — it's for small friend groups only */
+const toggleEye = document.getElementById('toggleEye');
+toggleEye.addEventListener('click', ()=>{
+  const p = document.getElementById('password');
+  p.type = p.type === 'password' ? 'text' : 'password';
+});
 
-    let accounts = JSON.parse(localStorage.getItem("accounts") || "{}");
+function login(){
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const pass = document.getElementById('password').value;
+  const err = document.getElementById('err');
 
-    if (accounts[u] && accounts[u] === p) {
-        localStorage.setItem("currentUser", u);
-        window.location.href = "dashboard.html";
-    } else {
-        document.getElementById("err").innerHTML = "Invalid username or password!";
-    }
+  if(!email || !pass){ err.textContent = 'Please enter email and password'; return; }
+
+  const accounts = JSON.parse(localStorage.getItem('accounts') || '{}');
+  if(accounts[email] && accounts[email] === pass){
+    localStorage.setItem('currentUser', email);
+    window.location.href = 'dashboard.html';
+  } else {
+    err.textContent = 'Invalid credentials';
+  }
 }
 </script>
-
 </body>
 </html>
